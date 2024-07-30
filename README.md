@@ -377,10 +377,23 @@ df.to_excel(output_file, index=False, engine='openpyxl')
 
 所有规则判断的类别所需用到的判定关键词都在文件夹[rule keywords](https://github.com/Whiplash222/Benz-Text-Classification/tree/main/rule%20keywords)中，可以通过增添减少或修改该文件夹中文件的方式，对规则分类操作进行调整修改。
 
+### 结果整理与展示
+对于规则判断后仍未落域的数据，根据算法训练得到的属于每一类的概率值，人为判断设定一个阈值，当落域概率值大于这一阈值时，将这一文本数据归为对应的类别，其他未落域数据全部标为“无明确意图”。文件[result](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/rule_plus_cnn_result_4.xlsx)中计算并展示了整体与各类别对应的精确率和召回率，可以看到整体分类精确率达到了87.60%，说明利用规则判断+深度学习进行文本分类的方法，能够对该未落域数据实现较好的分类结果。
 
+### 其他方法尝试
+我们还尝试了无监督文本分类方法潜在狄利克雷分配 Latent Dirichlet Allocation(LDA)，方法大概思路如下：
 
+![image](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/LDA_method.png)
 
+LDA方法实现代码详见：[read_lda_summary.py](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/read_lda_summary.py)
 
+得到的可视化分类结果见以下文件：【[已落域数据无监督分类可视化结果](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/1Lda_visual%20results_ID.html)】&【[未落域数据无监督分类可视化结果](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/1Lda_visual%20results_OOD_4.html)】
+
+未落域数据的准确率与召回率结果见Excel文件：[result_lda](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/OOD%20data_lda%20results.xlsx).
+
+可以看到由于未落域数据类别过多区分困难，无监督的文本分类方法无法较好地对未落域数据进行分类，结果远远不如规则判断+深度学习的结果。
+
+后续可继续探索针对训练数据不足或者训练数据与待分类数据类别有所区别的情况下，迁移学习、zero-shot/few-shot learning的方法，并与已有方法进行对比尝试。
 
 
 
