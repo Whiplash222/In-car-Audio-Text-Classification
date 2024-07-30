@@ -17,19 +17,6 @@
 13.正常退出
 14.科普
 15.电话
-<table>
-  <tr>
-    <td>分类</td>
-    <td>描述</td>
-    <td>示例</td>
-  </tr>
-  <tr>
-    <td>1.语气词</td>
-    <td>- 口语中常见但无实际含义 
-    - 识别模型未做文本顺滑，可能导致语气词较多而影响NLU效果</td>
-    <td>啊；嗯；a；哈哈哈；</td>
-  </tr>
-</table>
 
 ## 分类方法与代码说明
 基于未落域数据目标分类各类的不同特点，以及未落域与已落域数据的共性与差异性，我们采取规则判断与深度学习相结合的方法对未落域文本数据进行分类，具体分类流程如下图所示：
@@ -65,21 +52,27 @@ import seaborn as sns
 
 ##### 加载数据集
 
-首先从Excel文件加载训练数据集，本案例中，在多种尝试后，我们选择[training data](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/testdata_noood_2w_noentity.xlsx)
+首先从Excel文件加载训练数据集，本案例中，在多种尝试后，我们选择[training data without ood](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/testdata_noood_2w_noentity.xlsx)，也即训练数据由2万条媒体单实体/完整句以及2万条控单实体/完整句构成，来进行*媒体单实体/完整句*类别的分类训练，而利用[training data with ood](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/testdata_withood_2w_noentity.xlsx)，也即训练数据由2万条媒体单实体/完整句、2万条控单实体/完整句以及2万条未落域数据构成，来进行*控单实体/完整句*类别的分类训练。可通过更改读取输入的训练数据集来实现其他文本分类的运行实现。
 
 ```python
-df = pd.read_excel('E://AISpeech/data/testdata_withood_2w_noentity.xlsx')
+df = pd.read_excel('/testdata_withood_2w_noentity.xlsx')
 df = df[['领域', '用户query']]
 df.rename(columns={'领域': 'cat', '用户query': 'review'}, inplace=True)
 ```
 
-### 数据清洗
+##### 数据清洗
 
-移除空值并通过去除标点符号来清理文本。
+通过移除空值并去除标点符号来对文本数据进行清理：
 
 ```python
 df = df[pd.notnull(df['review'])]
 
+# Encode categories
+label_encoder = LabelEncoder()
+df['cat_id'] = label_encoder.fit_transform(df['cat'])
+cat_id_df = pd.DataFrame({'cat': label_encoder.classes_, 'cat_id': range(len(label_encoder.classes_))})
+
+# Text cleaning function
 def remove_punctuation(line):
     line = str(line)
     if line.strip() == '':
@@ -89,40 +82,274 @@ def remove_punctuation(line):
     return line
 ```
 
-### 加载停用词
+##### 加载停用词
 
-从文件中加载停用词列表。
+从[停用词列表](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/chineseStopWords.txt)中加载中文停用词列表，使用jieba对文本进行分词，并去除停用词。
 
 ```python
 def stopwordslist(filepath):
     stopwords = [line.strip() for line in open(filepath, 'r', encoding='utf-8').readlines()]
     return stopwords
 
-stopwords = stopwordslist('E://AISpeech/chineseStopWords.txt')
-```
+stopwords = stopwordslist('/chineseStopWords.txt')
 
-### 文本切词
-
-使用结巴分词对文本进行切词，并去除停用词。
-
-```python
 df['cut_review'] = df['clean_review'].apply(lambda x: " ".join([w for w in list(jb.cut(x)) if w not in stopwords]))
 ```
 
-### 文本序列化
+##### 文本序列化
 
-将文本转换为序列以便输入到模型中。
+将文本转换为序列以便输入到模型中：
 
 ```python
-def text_to_sequence(text, vocab, max_length):
-    # 实现细节
+# Apply text cleaning
+df['clean_review'] = df['review'].apply(remove_punctuation)
+# Tokenization and padding
+df['cut_review'] = df['clean_review'].apply(lambda x: " ".join([w for w in list(jb.cut(x)) if w not in stopwords]))
+# Build vocabulary
+vocab = {}
+for text in df['cut_review']:
+    for word in text.split():
+        if word not in vocab:
+            vocab[word] = len(vocab) + 1
+
+MAX_SEQUENCE_LENGTH = 10
+
+# Convert text to sequences
+def text_to_sequence(text, vocab, max_len):
+    sequence = [vocab.get(word, 0) for word in text.split()]
+    if len(sequence) < max_len:
+        sequence = [0] * (max_len - len(sequence)) + sequence
+    else:
+        sequence = sequence[:max_len]
+    return sequence
+
 df['sequence'] = df['cut_review'].apply(lambda x: text_to_sequence(x, vocab, MAX_SEQUENCE_LENGTH))
 ```
 
+#### 数据集划分和加载
 
+将数据集划分为训练集和测试集：
 
+```python
+X = np.array(df['sequence'].tolist())
+y = np.array(df['cat_id'].tolist())
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+```
 
+定义一个自定义的 PyTorch 数据集类以加载数据：
 
+```python
+# Create PyTorch Dataset
+class TextDataset(Dataset):
+    def __init__(self, X, Y):
+        self.X = torch.tensor(X, dtype=torch.long)
+        self.Y = torch.tensor(Y, dtype=torch.long)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.Y[idx]
+```
+
+使用 `DataLoader` 创建数据加载器以进行批处理：
+
+```python
+train_dataset = TextDataset(X_train, y_train)
+test_dataset = TextDataset(X_test, y_test)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+```
+
+#### 模型构建和训练
+
+##### 定义 CNN 模型
+
+使用 PyTorch 定义构建 CNN 模型：
+
+```python
+# Define the CNN model
+class CNNClassifier(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, output_size, kernel_sizes=[3, 4, 5], num_filters=100, drop_prob=0.5):
+        super(CNNClassifier, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.convs = nn.ModuleList([
+            nn.Conv2d(1, num_filters, (k, embedding_dim)) for k in kernel_sizes
+        ])
+        self.dropout = nn.Dropout(drop_prob)
+        self.fc = nn.Linear(len(kernel_sizes) * num_filters, output_size)
+
+    def forward(self, x):
+        x = self.embedding(x).unsqueeze(1)
+        x = [torch.relu(conv(x)).squeeze(3) for conv in self.convs]
+        x = [torch.max_pool1d(sub_x, sub_x.size(2)).squeeze(2) for sub_x in x]
+        x = torch.cat(x, 1)
+        x = self.dropout(x)
+        return self.fc(x)
+```
+
+##### 训练模型
+
+对模型参数进行初始化，确定优化器和损失函数，定义训练循环：
+
+```python
+# Initialize the model, loss function, and optimizer
+vocab_size = len(vocab) + 1
+embedding_dim = 100
+output_size = len(cat_id_df)
+kernel_sizes = [3, 4, 5]
+num_filters = 100
+
+model = CNNClassifier(vocab_size, embedding_dim, output_size, kernel_sizes, num_filters)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# Training the model
+epochs = 20
+model.train()
+
+history = {'train_loss': [], 'train_accuracy': [], 'val_loss': [], 'val_accuracy': []}
+
+for epoch in range(epochs):
+    epoch_loss = 0
+    epoch_accuracy = 0
+
+    for inputs, labels in train_loader:
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        epoch_loss += loss.item()
+        epoch_accuracy += (outputs.argmax(1) == labels).sum().item() / labels.size(0)
+
+    val_loss = 0
+    val_accuracy = 0
+    model.eval()
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            val_loss += loss.item()
+            val_accuracy += (outputs.argmax(1) == labels).sum().item() / labels.size(0)
+    model.train()
+
+    history['train_loss'].append(epoch_loss / len(train_loader))
+    history['train_accuracy'].append(epoch_accuracy / len(train_loader))
+    history['val_loss'].append(val_loss / len(test_loader))
+    history['val_accuracy'].append(val_accuracy / len(test_loader))
+
+    print(f'Epoch {epoch + 1}/{epochs}, '
+          f'Train Loss: {epoch_loss / len(train_loader)}, Train Accuracy: {epoch_accuracy / len(train_loader)}, '
+          f'Val Loss: {val_loss / len(test_loader)}, Val Accuracy: {val_accuracy / len(test_loader)}')
+```
+
+#### 模型评估和预测
+
+##### 评估模型
+
+在此前划分出来的测试集上评估模型性能并输出分类报告和混淆矩阵：
+
+```python
+# Evaluating the model
+model.eval()
+test_loss = 0
+test_accuracy = 0
+
+with torch.no_grad():
+    for inputs, labels in test_loader:
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        test_loss += loss.item()
+        test_accuracy += (outputs.argmax(1) == labels).sum().item() / labels.size(0)
+
+print(f'Test Loss: {test_loss / len(test_loader)}, Test Accuracy: {test_accuracy / len(test_loader)}')
+
+# Plotting the training history (loss and accuracy)
+plt.figure(figsize=(12, 4))
+plt.subplot(1, 2, 1)
+plt.title('Loss')
+plt.plot(history['train_loss'], label='train')
+plt.plot(history['val_loss'], label='test')
+plt.legend()
+plt.subplot(1, 2, 2)
+plt.title('Accuracy')
+plt.plot(history['train_accuracy'], label='train')
+plt.plot(history['val_accuracy'], label='test')
+plt.legend()
+plt.show()
+
+# Confusion Matrix
+y_pred = []
+y_true = []
+probabilities = []
+
+with torch.no_grad():
+    for inputs, labels in test_loader:
+        outputs = model(inputs)
+        probabilities.extend (torch.softmax(outputs, dim=1))
+        y_pred.extend(outputs.argmax(1).tolist())
+        y_true.extend(labels.tolist())
+
+conf_mat = confusion_matrix(y_true, y_pred)
+fig, ax = plt.subplots(figsize=(10, 8))
+sns.heatmap(conf_mat, annot=True, fmt='d', xticklabels=cat_id_df['cat'].values, yticklabels=cat_id_df['cat'].values)
+plt.ylabel('real label', fontsize=18)
+plt.xlabel('predicted label', fontsize=18)
+plt.show()
+
+print('accuracy %s' % accuracy_score(y_pred, y_true))
+print(classification_report(y_true, y_pred, target_names=cat_id_df['cat'].values))
+print(probabilities)
+```
+
+#### OOD数据分类
+
+##### 预处理OOD数据
+
+对出现频率处于前1000的[OOD数据](https://github.com/Whiplash222/Benz-Text-Classification/blob/main/top1000new.xlsx)进行与上述训练数据相通的预处理并利用上面训练好的CNN分类器对新到达的OOD数据进行文本分类预测：
+
+```python
+#ood data
+ooddata = pd.read_excel('/top1000new.xlsx')
+ooddata = ooddata[['领域', '用户query']]
+ooddata.rename(columns={'领域': 'cat', '用户query': 'review'}, inplace=True)
+ooddata = ooddata[pd.notnull(ooddata['review'])]
+ooddata['clean_review']= ooddata['review'].apply(remove_punctuation)
+ooddata['cut_review'] = ooddata['clean_review'].apply(lambda x: " ".join([w for w in list(jb.cut(x)) if w not in stopwords]))
+ooddata['sequence'] = ooddata['cut_review'].apply(lambda x: text_to_sequence(x, vocab, MAX_SEQUENCE_LENGTH))
+X_ood=np.array(ooddata['sequence'].tolist())
+ood_dataset=TextDataset_ood(X_ood)
+ood_loader=DataLoader(ood_dataset, batch_size=64, shuffle=False)
+
+# Confusion Matrix
+y_pred_ood = []
+probabilities_ood = []
+x_input_ood = []
+
+with torch.no_grad():
+    for inputs in ood_loader:
+        outputs = model(inputs)
+        probabilities_ood.extend(torch.softmax(outputs, dim=1))
+        y_pred_ood.extend(outputs.argmax(1).tolist())
+        x_input_ood.extend(inputs.tolist())
+```
+
+##### 输出OOD预测结果
+
+将OOD数据的预测分类结果以及属于每一类的概率值输出为excel文件：
+```python
+data = {
+    'y_pred': y_pred_ood,
+    'sequence': x_input_ood
+}
+for i in range(len(probabilities_ood[0])):
+    data[f'prob_class_{i}'] = [prob[i].item() for prob in probabilities_ood]
+df = pd.DataFrame(data)
+output_file = '/predictions_withood_noentity.xlsx'
+df.to_excel(output_file, index=False, engine='openpyxl')
+```
 
 
 
