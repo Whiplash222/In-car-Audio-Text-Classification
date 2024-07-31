@@ -15,7 +15,7 @@ import numpy as np
 from gensim.models import LdaModel
 
 stoplist = []
-for line in open('E://AISpeech/stop_w.txt', 'r',encoding='utf-8').readlines():
+for line in open('./stop_w.txt', 'r',encoding='utf-8').readlines():
     stoplist.append(line.strip())
 
 # 去噪函数
@@ -32,7 +32,7 @@ def preprocess_text(text):
 
 # 读取Excel文件
 np.random.seed(22)
-df = pd.read_excel('E://AISpeech/OOD data.xlsx')
+df = pd.read_excel('./OOD data.xlsx')
 random_rows = df.sample(n=100)
 
 # 初始化存储内容和标签的列表
@@ -92,8 +92,7 @@ model = LdaModel(
 )
 
 topic_list=model.print_topics()
-# g = open('C://Users/pengyue/text_aispeech/Lda_new_stopw12.csv', 'w',encoding='utf-8')
-# g.write(str(topic_list))
+
 
 for topic in topic_list:
     print(topic)
@@ -138,7 +137,7 @@ for new_doc in content_select:
 df = pd.DataFrame(results, columns=['Document'] + [f'Topic_{i}' for i in range(num_topics)])
 
 # 保存结果为CSV文件
-df.to_csv('E://lda_results.csv', index=False)
+df.to_csv('./lda_results.csv', index=False)
 
 print("Results saved to lda_results.csv")
 # import pyLDAvis.gensim_models as gensimvis
@@ -150,5 +149,3 @@ print("Results saved to lda_results.csv")
 # import pyLDAvis.gensim
 # import pyLDAvis
 
-# data = pyLDAvis.gensim.prepare(model, corpus, dictionary)
-# pyLDAvis.save_html(data,'C://Users/pengyue/text_aispeech/Lda_visual results_new_stopw12.html')
