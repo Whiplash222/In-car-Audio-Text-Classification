@@ -44,7 +44,7 @@ def stopwordslist(filepath):
     stopwords = [line.strip() for line in open(filepath, 'r', encoding='utf-8').readlines()]
     return stopwords
 
-stopwords = stopwordslist('E://AISpeech/chineseStopWords.txt')
+stopwords = stopwordslist('./chineseStopWords.txt')
 
 
 
@@ -83,7 +83,7 @@ class TextDataset_ood(Dataset):
         return self.X[idx]
 
 #ood data
-ooddata = pd.read_excel('E://AISpeech/data/top1000new.xlsx')
+ooddata = pd.read_excel('./top1000new.xlsx')
 ooddata = ooddata[['领域', '用户query']]
 ooddata.rename(columns={'领域': 'cat', '用户query': 'review'}, inplace=True)
 n=len(ooddata['review'])
@@ -97,8 +97,6 @@ n=len(ooddata['review'])
 
 
 # # 输出为Excel文件
-# output_file = 'E://predictions_cnnnew.xlsx'
-# df.to_excel(output_file, index=False, engine='openpyxl')
 
 # print(f'Data saved to {output_file}')
 
@@ -120,7 +118,7 @@ def is_pure_number(text):
 #     :return: 如果文本完全是一个语气词则返回True，否则返回False
 #     """
 #     return text in intonation_words
-df_intonation = pd.read_excel("E://AISpeech/data/intonation_phrases_10000.xlsx")
+df_intonation = pd.read_excel("./intonation_phrases_10000.xlsx")
 df_intonation = df_intonation.drop_duplicates()
 intonation_words = df_intonation['Intonation Words'].tolist()
 
@@ -136,7 +134,7 @@ def contains_miswake_word(text, miswake_words):
         if word in text:
             return True
     return False
-df_miswake = pd.read_excel("E://AISpeech/data/miswake_phrases.xlsx")
+df_miswake = pd.read_excel("./miswake_phrases.xlsx")
 df_miswake = df_miswake.drop_duplicates()
 miswake_words = df_miswake['Miswake Words'].tolist()
 
@@ -153,7 +151,7 @@ def contains_insult_word(text, insult_words):
             if word in text:
                 return True
     return False
-df_insult = pd.read_excel("E://AISpeech/data/insult_phrases.xlsx")
+df_insult = pd.read_excel("./insult_phrases.xlsx")
 df_insult = df_insult.drop_duplicates()
 insult_words = df_insult['Insult Words'].tolist()
 
@@ -177,7 +175,7 @@ def contains_wake_word(text, wake_words):
         if word in text:
             return True
     return False
-df_wake = pd.read_excel("E://AISpeech/data/wake_phrases.xlsx")
+df_wake = pd.read_excel("./wake_phrases.xlsx")
 df_wake = df_wake.drop_duplicates()
 wake_words = df_wake['Wake Words'].tolist()
 
@@ -190,7 +188,7 @@ def contains_exit_word(text, exit_words):
         if word in text:
             return True
     return False
-df_exit = pd.read_excel("E://AISpeech/data/exit_keywords.xlsx")
+df_exit = pd.read_excel("./exit_keywords.xlsx")
 df_exit = df_exit.drop_duplicates()
 exit_words = df_exit['Exit Keywords'].tolist()
 
@@ -203,7 +201,7 @@ def contains_science_word(text, science_words):
         if word in text:
             return True
     return False
-df_science = pd.read_excel("E://AISpeech/data/science_keywords.xlsx")
+df_science = pd.read_excel("./science_keywords.xlsx")
 df_science = df_science.drop_duplicates()
 science_words = df_science['Science Keywords'].tolist()
 
@@ -216,7 +214,7 @@ def contains_EC_word(text, EC_words):
         if word in text:
             return True
     return False
-df_EC = pd.read_excel("E://AISpeech/data/navigation_key_phrases.xlsx")
+df_EC = pd.read_excel("./navigation_key_phrases.xlsx")
 df_EC = df_EC.drop_duplicates()
 EC_words = df_EC['Navigation_Key_Phrase'].tolist()
 
@@ -229,7 +227,7 @@ def contains_noentity_word(text, noentity_words):
         if (word in text) & (len(text)<=4):
             return True
     return False
-df_noentity = pd.read_excel("E://AISpeech/data/noentity_phrases.xlsx")
+df_noentity = pd.read_excel("./noentity_phrases.xlsx")
 df_noentity = df_noentity.drop_duplicates()
 noentity_words = df_noentity['Noentity_Key_Phrase'].tolist()
 
@@ -323,7 +321,7 @@ for i in range(n):
 
 meaning=ooddata
 # 输出为Excel文件
-output_file = 'E://meaning_noentity.xlsx'
+output_file = './meaning_noentity.xlsx'
 meaning.to_excel(output_file, index=False, engine='openpyxl')
 
 print(f'Data saved to {output_file}')
