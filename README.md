@@ -29,7 +29,7 @@
 ## 分类方法与代码说明
 基于未落域数据目标分类各类的不同特点，以及未落域与已落域数据的共性与差异性，我们采取规则判断与深度学习相结合的方法对未落域文本数据进行分类，具体分类流程如下图所示：
 
-![Image](https://github.com/Whiplash222/In-car-Audio-Text-Classification/blob/main/summary.png)
+![Image](https://github.com/Whiplash222/In-car-Audio-Text-Classification/blob/main/framework.png)
 
 也即，我们对*3.控单实体/完整句 4.媒体单实体/完整句*这两类在已落域文本中有可用训练数据，且类别规则判断较为复杂的类别进行深度学习训练分类，而对其他具有较为清晰简单定义的类别进行规则判断分类。
 
