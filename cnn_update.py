@@ -21,9 +21,7 @@ from sklearn.metrics import confusion_matrix, classification_report, accuracy_sc
 import seaborn as sns
 
 # Load dataset
-# df = pd.read_csv('E://AISpeech/data/online_shopping_10_cats.csv')
-# df = df[['cat', 'review']]
-df = pd.read_excel('E://AISpeech/data/testdata_withood_2w_noentity.xlsx')
+df = pd.read_excel('./testdata_withood_2w_noentity.xlsx')
 df = df[['领域', '用户query']]
 df.rename(columns={'领域': 'cat', '用户query': 'review'}, inplace=True)
 print("数据总量: %d ." % len(df))
@@ -59,7 +57,7 @@ def stopwordslist(filepath):
     stopwords = [line.strip() for line in open(filepath, 'r', encoding='utf-8').readlines()]
     return stopwords
 
-stopwords = stopwordslist('E://AISpeech/chineseStopWords.txt')
+stopwords = stopwordslist('./chineseStopWords.txt')
 
 # Apply text cleaning
 df['clean_review'] = df['review'].apply(remove_punctuation)
@@ -255,13 +253,13 @@ for i in range(len(probabilities[0])):  # 假设每个概率向量的长度相�
 df = pd.DataFrame(data)
 
 # 输出为Excel文件
-output_file = 'E://predictions.xlsx'
+output_file = './predictions.xlsx'
 df.to_excel(output_file, index=False, engine='openpyxl')
 
 print(f'Data saved to {output_file}')
 
 #ood data
-ooddata = pd.read_excel('E://AISpeech/data/top1000new.xlsx')
+ooddata = pd.read_excel('./top1000new.xlsx')
 ooddata = ooddata[['领域', '用户query']]
 ooddata.rename(columns={'领域': 'cat', '用户query': 'review'}, inplace=True)
 ooddata = ooddata[pd.notnull(ooddata['review'])]
@@ -298,7 +296,7 @@ for i in range(len(probabilities_ood[0])):  # 假设每个概率向量的长度�
 df = pd.DataFrame(data)
 
 # 输出为Excel文件
-output_file = 'E://predictions_withood_noentity.xlsx'
+output_file = './predictions_withood_noentity.xlsx'
 df.to_excel(output_file, index=False, engine='openpyxl')
 
 print(f'Data saved to {output_file}')
