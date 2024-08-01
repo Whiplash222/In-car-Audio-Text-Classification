@@ -15,7 +15,7 @@ import numpy as np
 from gensim.models import LdaModel
 
 stoplist = []
-for line in open('./stop_w.txt', 'r',encoding='utf-8').readlines():
+for line in open('./chineseStopWords.txt', 'r',encoding='utf-8').readlines():
     stoplist.append(line.strip())
 
 # 去噪函数
@@ -32,7 +32,7 @@ def preprocess_text(text):
 
 # 读取Excel文件
 np.random.seed(22)
-df = pd.read_excel('./OOD data.xlsx')
+df = pd.read_excel('./top1000new.xlsx')
 random_rows = df.sample(n=100)
 
 # 初始化存储内容和标签的列表
