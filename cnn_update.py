@@ -23,10 +23,7 @@ def main():
     import seaborn as sns
     import os
     
-     
-    os.chdir('E:\Oxford\LOBSTER\In-car-Audio-Text-Classification-main - 副本')#更改路径，
-     
-    print(os.getcwd())#显示当前路径
+    
     
     # Load dataset
     df = pd.read_excel('./testdata_withood_2w_noentity.xlsx')
