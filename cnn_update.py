@@ -241,8 +241,7 @@ def main():
         plt.show()
         
         print('accuracy %s' % accuracy_score(y_pred, y_true))
-        print(classification_report(y_true, y_pred, target_names=cat_id_df['cat'].values))
-        print(probabilities)
+        
         # # 将数据转换为 DataFrame
         # data = {
         #     'y_true': y_true,
